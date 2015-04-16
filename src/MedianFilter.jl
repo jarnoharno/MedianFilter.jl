@@ -1,6 +1,6 @@
 module MedianFilter
 
-export medfilt1
+export medfilt1, meanfilt
 
 # ord = <  -> max-heap
 # ord = >= -> min-heap
@@ -109,6 +109,32 @@ function medfilt1(x,w)
         push_med(m,x[i>n?n:i])
     end
     [push_med(m,x[i+w1>n?n:i+w1]) for i=1:n]
+end
+
+# central simple moving average along the first dimension, repeat edges
+function meanfilt(x,w)
+    # divide window
+    w1 = div(w,2)+1
+    w2 = w-w1
+    n = size(x,1)
+    s = size(x)[2:end]
+    # value buffer
+    b = [repmat(x[1,:]/w,w1),
+         x[1:min(w2,n),:]./w,
+         repmat(x[end,:]/w,w-min(w2,n)-w1)]
+    # previous mean
+    m = sum(b,1)
+    r = zeros(size(x))
+    j = 1
+    for i = 1:n
+        # next value
+        p = reshape(x[min(i+w2,n),:],1,s...)./w
+        r[i,:] = m - b[j,:] + p
+        m = r[i,:]
+        b[j,:] = p
+        j = j == w ? 1 : j+1
+    end
+    r
 end
 
 end # module
